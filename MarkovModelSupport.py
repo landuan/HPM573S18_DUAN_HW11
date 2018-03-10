@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as numpy
-from MarkovModelProject import MarkovModelClasses as Classes
-from scr import StatisticalClasses as StatSupport
-from MarkovModelProject import Parameters as Params
+import scr.StatisticalClasses as StatSupport
+import MarkovModelClasses as Classes
+import Parameters as Params
 
 def graph_survival_histogram(patientSurvivalTimes, patientNONAIDSSurvivalTimes):
     """ graphs the histogram of patient survival times"""
