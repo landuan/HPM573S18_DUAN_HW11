@@ -1,53 +1,69 @@
 from enum import Enum
-import numpy as numpy
-from scr import SamplePathClass as PathCls, StatisticalClasses as StatCls, RandomVariantGenerators as RVGs
+from scr import \
+    SamplePathClass as PathCls, \
+    StatisticalClasses as StatCls, \
+    RandomVariantGenerators as rndClasses, \
+    EconEvalClasses as EconCls
+import Parameters as Params
 
 
 class HealthStat(Enum):
-    """ health states of patients  """
+    """ health states of patients with HIV """
     CD4_200to500 = 0
     CD4_200 = 1
     AIDS = 2
     HIV_DEATH = 3
 
 
-class HealthEvent(Enum):
-    """ health events """
-    SURVIVAL_AIDS_FREE = 0
-    SURVIVAL_WITH_AIDS = 1
-    AIDS = 2
-    HIV_DEATH = 3
+class Therapy(Enum):
+    """ mono vs. combination therapy """
+    MONO = 0
+    COMBO = 1
 
 
 class Patient:
-    def __init__(self, id, initial_state, parameters):
+    def __init__(self, id, initial_state, therapy):
         """ initiates a patient
         :param id: ID of the patient
         :param seed: an integer to specify the seed of the random number generator
         :param initial_state: (string) health state of the patient-- A, B, C, D
+        :param therapy: the therapy this patient will receive (mono vs. combination)
         """
+
         self._id = id
-        self._rng = numpy.random     # random number generator for this patient
-        self._rng.seed(id)           # initializing this patient's rng
-        self._params = parameters
-        self._stateMonitor = PatientStateMonitor(initial_state)  # patient's initial state
+        # random number generator for this patient
+        self._rng = rndClasses.RNG(self._id)
+
+        # annual treatment cost
+        if therapy == Therapy.MONO:
+            self._annualTreatmentCost = Params.Zidovudine_COST
+        else:
+            self._annualTreatmentCost = Params.Zidovudine_COST + Params.Lamivudine_COST
+
+        # state monitor
+        self._stateMonitor = PatientStateMonitor(initial_state)
 
     def simulate(self, n_time_steps):
         """ simulate the patient over the specified simulation length """
 
-        t = 0  # simulation current time
+        t = 0  # current time step
 
         # while the patient is alive and simulation length is not yet reached
-        while self._stateMonitor.get_current_state() != HealthStat.HIV_DEATH and t < n_time_steps:
-            # find the transition probabilities to possible future states
-            trans_probs = self._params.get_trans_prob(self._stateMonitor.get_current_state())
+        while self._stateMonitor.get_current_state() != HealthStat.HIV_DEATH \
+                and t < n_time_steps:
+
+            # find the transition probabilities of the future states
+            trans_probs = Params.TRANS_PROB(self._stateMonitor.get_current_state())
             # create an empirical distribution
-            empirical_dist = RVGs.Empirical(trans_probs)
+            empirical_dist = rndClasses.Empirical(trans_probs)
             # sample from the empirical distribution to get a new state
+            # (returns an integer from {0, 1, 2, ...})
             new_state_index = empirical_dist.sample(self._rng)
-            # update state
+
+            # update health state
             self._stateMonitor.update(HealthStat(new_state_index))
-            # increment time
+
+            # increment time step
             t += 1
 
     def get_survival_time(self):
@@ -58,61 +74,62 @@ class Patient:
         """ returns time to AIDS """
         return self._stateMonitor.get_time_to_AIDS()
 
+    def get_total_discounted_cost(self):
+        """ :returns total discounted cost """
+        return self._stateMonitor.get_total_discounted_cost()
+
+    def get_total_discounted_utility(self):
+        """ :returns total discounted utility"""
+        return self._stateMonitor.get_total_discounted_utility()
+
 
 class PatientStateMonitor:
-    def __init__(self, initial_state):
-
+    """ to update patient outcomes (years survived, cost, etc.) throughout the simulation """
+    def __init__(self, initial_state, annual_treatment_cost):
+        """
+        :param initial_state: the patient's initial health state
+        """
         self._currentState = initial_state  # current health state
-        self._lastHealthEvent = None        # last health event that occurred
-
-        # survival times
         self._survivalTime = 0          # survival time (with and without AIDS)
         self._AIDSFreeSurvivalTime = 0  # AIDS-free survival time
         self._progressedToAIDS = False  # if ever progressed to AIDS
 
-        # total cost and utility
-        self._totalCost = 0
-        self._totalUtility = 0
+        # monitoring cost and utility outcomes
+        self._costUtilityOutcomes = PatientCostUtilityMonitor(annual_treatment_cost)
 
-    def update(self, new_state):
+    def update(self, t, next_state):
+        """
+        :param t: current time step
+        :param next_state: next state
+        """
 
         # if the patient is in dead state, do nothing
         if self._currentState == HealthStat.HIV_DEATH:
             return
 
+        # update survival time
         # if HIV death will occur
-        if new_state == HealthStat.HIV_DEATH and self._currentState != HealthStat.HIV_DEATH:
-            self._lastHealthEvent = HealthEvent.HIV_DEATH
+        if next_state == HealthStat.HIV_DEATH:
+            self._survivalTime += 0.5  # corrected for the half-cycle effect
+        else:
             self._survivalTime += 1
-            if self._currentState != HealthStat.AIDS:
+
+        # update AIDS-free survival time
+        # the patient should not be already in AIDS state
+        if self._currentState != HealthStat.AIDS:
+            if next_state == HealthStat.HIV_DEATH:
+                self._AIDSFreeSurvivalTime += 0.5  # corrected for the half-cycle effect
+            else:
                 self._AIDSFreeSurvivalTime += 1
 
-        # if new state is AIDS
-        elif new_state == HealthStat.AIDS:
-            # if just developed AIDS
-            if self._currentState != HealthStat.AIDS:
-                self._lastHealthEvent = HealthEvent.AIDS
-                self._progressedToAIDS = True
-                self._survivalTime += 1
-            # if surviving with AIDS
-            else:
-                self._lastHealthEvent = HealthEvent.SURVIVAL_WITH_AIDS
-                self._survivalTime += 1
-
-        # if surviving without AIDS
-        else:
-            self._lastHealthEvent = HealthEvent.SURVIVAL_AIDS_FREE
-            self._survivalTime += 1
-            self._AIDSFreeSurvivalTime += 1
+        # collect cost and utility outcomes
+        self._costUtilityOutcomes.update(t, self._currentState, next_state)
 
         # update current health state
-        self._currentState = new_state
+        self._currentState = next_state
 
     def get_current_state(self):
         return self._currentState
-
-    def get_last_health_event(self):
-        return self._lastHealthEvent
 
     def get_survival_time(self):
         """ returns the patient survival time """
@@ -130,13 +147,59 @@ class PatientStateMonitor:
         else:
             return None
 
+    def get_total_discounted_cost(self):
+        """ :returns total discounted cost """
+        return self._costUtilityOutcomes.get_total_discounted_cost()
+
+    def get_total_discounted_utility(self):
+        """ :returns total discounted utility"""
+        return self._costUtilityOutcomes.get_total_discounted_utility()
+
+
+class PatientCostUtilityMonitor:
+
+    def __init__(self, annual_treatment_cost):
+
+        # annual treatment cost
+        self._annualTreatmentCost = annual_treatment_cost
+
+        # total cost and utility
+        self._totalDiscountedCost = 0
+        self._totalDiscountedUtility = 0
+
+    def update(self, discount_period, current_state, next_state):
+
+        # update cost
+        # cost of each health state
+        cost = 0.5 * (Params.ANNUAL_COST[current_state.value] + Params.ANNUAL_COST[next_state.value])
+        # cost of treatment
+        # if HIV death will occur
+        if next_state == HealthStat.HIV_DEATH:
+            cost += 0.5 * self._annualTreatmentCost  # corrected for the half-cycle effect
+        else:
+            cost += 1 * self._annualTreatmentCost
+
+            # utility of each health state
+        utility = 0.5 * (Params.ANNUAL_UTILITY[current_state.value] + Params.ANNUAL_UTILITY[next_state.value])
+
+        # update total discounted cost and utility
+        self._totalDiscountedCost += EconCls.pv(cost, Params.DISCOUNT/2, discount_period)
+        self._totalDiscountedUtility += EconCls.pv(utility, Params.DISCOUNT/2, discount_period)
+
+    def get_total_discounted_cost(self):
+        """ :returns total discounted cost """
+        return self._totalDiscountedCost
+
+    def get_total_discounted_utility(self):
+        """ :returns total discounted utility"""
+        return  self._totalDiscountedUtility
+
 
 class Cohort(object):
-    def __init__(self, id, pop_size, parameters):
+    def __init__(self, id, pop_size):
         """ create a cohort of patients
         :param id: an integer to specify the seed of the random number generator
         :param pop_size: population size of this cohort
-        :param parameters: (string) state of all patients -- A, B, C, D
         """
         self._initial_pop_size = pop_size
         self._patients = []      # list of patients
@@ -145,7 +208,7 @@ class Cohort(object):
         n = 0   # current population size
         while n < pop_size:
             # create a new patient (use id * pop_size + n as patient id)
-            patient = Patient(id * pop_size + n, HealthStat.CD4_200to500, parameters)
+            patient = Patient(id * pop_size + n, HealthStat.CD4_200to500)
             # add the patient to the cohort
             self._patients.append(patient)
             # increase the population size
