@@ -39,68 +39,22 @@ Lamivudine_COST = 2086.0
 TREATMENT_RR = 0.509
 
 
+def get_combo_therapy_trans_prob_matrix():
+    """ :returns the transition probability matrix under combination therapy """
 
+    # create an empty list of lists
+    combo_matrix = []
+    for l in TRANS_PROB:
+        combo_matrix.append([0] * len(l))
 
+    # populate the combo matrix
+    # first non-diagonal elements
+    for i in range(4):
+        for j in range(i + 1, 4):
+            combo_matrix[i][j] = TREATMENT_RR * TRANS_PROB[i][j]
 
+    # diagonal elements are calculated to make sure the sum of each row is 1
+    for i in range(3):
+        combo_matrix[i][i] = 1 - sum(combo_matrix[i][i + 1:])
 
-class Outcomes(Enum):
-    """ Index of parameters """
-    COST = 0        # annual cost of the current health state
-    UTILITY = 1     # annual health utility of the current health state
-
-
-class ParameterSet:
-
-    def __init__(self):
-
-        # transition probability matrix
-        self._MarkovTransProb = [
-            [0.721, 0.202, 0.067, 0.010],   # CD4_200to500
-            [0.000, 0.581, 0.407, 0.012],   # CD4_200
-            [0.000, 0.000, 0.750, 0.250],   # AIDS
-            [0.000, 0.000, 0.000, 1.000]    # HIV death
-        ]
-
-        # state outcomes [cost, utility]
-        self._statOutcomes = [
-            [2756,  0.75],      # CD4_200to500
-            [3025,  0.50],      # CD4_200
-            [9007,  0.25],      # AIDS
-            [0,     0.00]       # HIV death
-        ]
-
-        # annual drug costs
-        self._zidovudineCost = 2278
-        self._lamivudineCost = 2086
-
-        # annual treatment cost
-        self._monoTherapy = self._zidovudineCost
-        self._comboTherapy = self._zidovudineCost + self._lamivudineCost
-
-        # treatment relative risk
-        self._treatmentRR = 0.509
-
-    def get_trans_prob(self, state_index):
-        """
-        :param state_index: state index
-        :return: the transition probability to other state from this state
-        """
-        return self._MarkovTransProb[state_index]
-
-    def get_cost(self, state_index):
-        """
-        :param state_index: state index
-        :return: the annual cost of this state
-        """
-        return self._statOutcomes[Outcomes.COST.value]
-
-    def get_utility(self, state_index):
-        """
-        :param state_index: state index
-        :return: the annual utility of this state
-        """
-        return self._statOutcomes[Outcomes.UTILITY.value]
-
-    def get_treatmentRR(self):
-        """ return the treatment relative risk """
-        return self._treatmentRR
+    return combo_matrix

@@ -1,9 +1,8 @@
 from enum import Enum
-from scr import \
-    SamplePathClass as PathCls, \
-    StatisticalClasses as StatCls, \
-    RandomVariantGenerators as rndClasses, \
-    EconEvalClasses as EconCls
+import scr.SamplePathClass as PathCls
+import scr.StatisticalClasses as StatCls
+import scr.RandomVariantGenerators as rndClasses
+import scr.EconEvalClasses as EconCls
 import Parameters as Params
 
 
@@ -34,14 +33,23 @@ class Patient:
         # random number generator for this patient
         self._rng = rndClasses.RNG(self._id)
 
+        self._therapy = therapy
+
+        # find the transition probability matrix
+        self._transProbMatrix = Params.TRANS_PROB
+        if therapy == therapy.COMBO:
+            self._transProbMatrix = Params.get_combo_therapy_trans_prob_matrix()
+
         # annual treatment cost
         if therapy == Therapy.MONO:
-            self._annualTreatmentCost = Params.Zidovudine_COST
+            annual_treatment_cost = Params.Zidovudine_COST
         else:
-            self._annualTreatmentCost = Params.Zidovudine_COST + Params.Lamivudine_COST
+            annual_treatment_cost = Params.Zidovudine_COST + Params.Lamivudine_COST
 
         # state monitor
-        self._stateMonitor = PatientStateMonitor(initial_state)
+        self._stateMonitor = PatientStateMonitor(initial_state, annual_treatment_cost)
+
+
 
     def simulate(self, n_time_steps):
         """ simulate the patient over the specified simulation length """
@@ -53,7 +61,7 @@ class Patient:
                 and t < n_time_steps:
 
             # find the transition probabilities of the future states
-            trans_probs = Params.TRANS_PROB(self._stateMonitor.get_current_state())
+            trans_probs = self._transProbMatrix[self._stateMonitor.get_current_state().value]
             # create an empirical distribution
             empirical_dist = rndClasses.Empirical(trans_probs)
             # sample from the empirical distribution to get a new state
@@ -61,7 +69,7 @@ class Patient:
             new_state_index = empirical_dist.sample(self._rng)
 
             # update health state
-            self._stateMonitor.update(HealthStat(new_state_index))
+            self._stateMonitor.update(t, HealthStat(new_state_index))
 
             # increment time step
             t += 1
@@ -121,6 +129,11 @@ class PatientStateMonitor:
                 self._AIDSFreeSurvivalTime += 0.5  # corrected for the half-cycle effect
             else:
                 self._AIDSFreeSurvivalTime += 1
+
+        # if ever progressed to AIDS
+
+        if self._currentState != HealthStat.AIDS and next_state == HealthStat.AIDS:
+            self._progressedToAIDS = True
 
         # collect cost and utility outcomes
         self._costUtilityOutcomes.update(t, self._currentState, next_state)
@@ -196,23 +209,21 @@ class PatientCostUtilityMonitor:
 
 
 class Cohort(object):
-    def __init__(self, id, pop_size):
+    def __init__(self, id, pop_size, therapy):
         """ create a cohort of patients
         :param id: an integer to specify the seed of the random number generator
         :param pop_size: population size of this cohort
+        :param therapy: the therapy this patient will receive (mono vs. combination)
         """
         self._initial_pop_size = pop_size
         self._patients = []      # list of patients
 
         # populate the cohort
-        n = 0   # current population size
-        while n < pop_size:
-            # create a new patient (use id * pop_size + n as patient id)
-            patient = Patient(id * pop_size + n, HealthStat.CD4_200to500)
+        for i in range(pop_size):
+            # create a new patient (use id * pop_size + i as patient id)
+            patient = Patient(id * pop_size + i, HealthStat.CD4_200to500, therapy)
             # add the patient to the cohort
             self._patients.append(patient)
-            # increase the population size
-            n += 1
 
     def simulate(self, n_time_steps):
         """ simulate the cohort of patients over the specified number of time-steps
@@ -231,8 +242,7 @@ class Cohort(object):
         return self._initial_pop_size
 
     def get_patients(self):
-        for p in self._patients:
-            yield p
+        return self._patients
 
 
 class CohortOutputs:
@@ -241,42 +251,51 @@ class CohortOutputs:
         :param simulated_cohort: a cohort after being simulated
         """
 
-        # number of living patients over time
-        self._popSizeOverTime = \
+        self._survivalTimes = []  # patient survival times
+
+        # survival curve
+        self._survivalCurve = \
             PathCls.SamplePathBatchUpdate('Population size over time', id, simulated_cohort.get_initial_pop_size())
-        # survival time of patients who died during the simulation
-        self._patientSurvivalTimes = []
-        # AIDS-free survival time of patients who developed AIDS during the simulation
-        self._patientTimeToAIDS = []
+
         # summary statistics
-        self._sumStat_survivalTimes = None  # summary statistics on survival times
-        self._sumStat_AIDSFreeSurvivalTimes = None  # summary statistics on AIDS free survival times
+        self._sumStat_survivalTime = StatCls.DiscreteTimeStat('Patient survival time')
+        self._sumStat_AIDSFreeSurvivalTime = StatCls.DiscreteTimeStat('AIDS-free survival time ')
+        self._sumStat_cost = StatCls.DiscreteTimeStat('Patient discounted cost')
+        self._sumStat_utility = StatCls.DiscreteTimeStat('Patient discounted utility')
 
         # find patients' survival times
         for patient in simulated_cohort.get_patients():
+
             # get the patient survival time
             survival_time = patient.get_survival_time()
             if not (survival_time is None):
-                self._popSizeOverTime.record(survival_time, -1)
-                self._patientSurvivalTimes.append(survival_time)
+                self._survivalTimes.append(survival_time)
+                self._survivalCurve.record(survival_time, -1)
+                self._sumStat_survivalTime.record(survival_time)
+
             # get the patient AIDS-free survival time
             time_to_AIDS = patient.get_time_to_AIDS()
             if not (time_to_AIDS is None):
-                self._patientTimeToAIDS.append(time_to_AIDS)
+                self._sumStat_AIDSFreeSurvivalTime.record(time_to_AIDS)
 
-        # update the summary statistics
-        # survival time
-        self._sumStat_survivalTimes \
-            = StatCls.SummaryStat('Patient survival time', self._patientSurvivalTimes)
-        # AIDS-free survival time
-        self._sumStat_AIDSFreeSurvivalTimes \
-            = StatCls.SummaryStat('Time to AIDS', self._patientTimeToAIDS)
+            # cost and utility
+            self._sumStat_cost.record(patient.get_total_discounted_cost())
+            self._sumStat_utility.record(patient.get_total_discounted_utility())
 
-    def get_sumStat_survivalTimes(self):
-        return self._sumStat_survivalTimes
+    def get_survival_times(self):
+        return self._survivalTimes
 
-    def get_sumStat_AIDSFreeSurvivalTimes(self):
-        return self._sumStat_AIDSFreeSurvivalTimes
+    def get_sumStat_survival_times(self):
+        return self._sumStat_survivalTime
 
-    def get_pop_size_over_time(self):
-        return self._popSizeOverTime
+    def get_sumStat_AIDS_free_survival_time(self):
+        return self._sumStat_AIDSFreeSurvivalTime
+
+    def get_sumStat_discounted_cost(self):
+        return self._sumStat_cost
+
+    def get_sumStat_discounted_utility(self):
+        return self._sumStat_utility
+
+    def get_survival_curve(self):
+        return self._survivalCurve
