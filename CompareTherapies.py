@@ -1,4 +1,4 @@
-import Parameters as Params
+import ParameterClasses as P
 import MarkovModelClasses as MarkovCls
 import SupportMarkovModel as SupportMarkov
 import scr.SamplePathClass as PathCls
@@ -6,15 +6,21 @@ import scr.FigureSupport as Figs
 
 # simulating mono therapy
 # create a cohort
-cohort_mono = MarkovCls.Cohort(id=1, pop_size=Params.POP_SIZE, therapy=Params.Therapy.MONO)
+cohort_mono = MarkovCls.Cohort(
+    id=1,
+    cohort_param=P.CohortParameters(),
+    patient_param=P.PatientParameters(P.Therapy.MONO))
 # simulate the cohort
-simOutputs_mono = cohort_mono.simulate(Params.TIME_STEPS)
+simOutputs_mono = cohort_mono.simulate()
 
 # simulating combination therapy
 # create a cohort
-cohort_combo = MarkovCls.Cohort(id=2, pop_size=Params.POP_SIZE, therapy=Params.Therapy.COMBO)
+cohort_combo = MarkovCls.Cohort(
+    id=2,
+    cohort_param=P.CohortParameters(),
+    patient_param=P.PatientParameters(P.Therapy.COMBO))
 # simulate the cohort
-simOutputs_combo = cohort_combo.simulate(Params.TIME_STEPS)
+simOutputs_combo = cohort_combo.simulate()
 
 # get survival curves of both treatments
 survival_curves = [

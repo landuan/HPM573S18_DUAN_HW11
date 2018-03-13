@@ -1,13 +1,17 @@
-import Parameters as Params
+import ParameterClasses as P
 import MarkovModelClasses as MarkovCls
 import SupportMarkovModel as SupportMarkov
 import scr.SamplePathClass as PathCls
 import scr.FigureSupport as Figs
 
 # create a cohort
-cohort = MarkovCls.Cohort(id=1, pop_size=Params.POP_SIZE, therapy=Params.Therapy.MONO)
+cohort = MarkovCls.Cohort(
+    id=1,
+    cohort_param=P.CohortParameters(),
+    patient_param=P.PatientParameters(P.Therapy.MONO))
+
 # simulate the cohort
-simOutputs = cohort.simulate(Params.TIME_STEPS)
+simOutputs = cohort.simulate()
 
 # graph survival curve
 PathCls.graph_sample_path(

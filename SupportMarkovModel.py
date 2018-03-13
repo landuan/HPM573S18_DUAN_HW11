@@ -1,5 +1,5 @@
 import scr.FormatFunctions as Format
-import Parameters as Params
+import InputData as Params
 
 
 def print_outcomes(simOutput, therapy_name):

@@ -2,14 +2,13 @@ import scr.SamplePathClass as PathCls
 import scr.StatisticalClasses as StatCls
 import scr.RandomVariantGenerators as rndClasses
 import scr.EconEvalClasses as EconCls
-import Parameters as P
+import ParameterClasses as P
 
 
 class Patient:
-    def __init__(self, id, initial_state, parameters):
+    def __init__(self, id, parameters):
         """ initiates a patient
         :param id: ID of the patient
-        :param initial_state: (type=HealthStat) health state of patient
         :param parameters: parameter object
         """
 
@@ -19,7 +18,7 @@ class Patient:
         # parameters
         self._param = parameters
         # state monitor
-        self._stateMonitor = PatientStateMonitor(initial_state, self._param)
+        self._stateMonitor = PatientStateMonitor(parameters)
 
     def simulate(self, n_time_steps):
         """ simulate the patient over the specified simulation length """
@@ -63,11 +62,11 @@ class Patient:
 
 class PatientStateMonitor:
     """ to update patient outcomes (years survived, cost, etc.) throughout the simulation """
-    def __init__(self, initial_state, parameters):
+    def __init__(self, parameters):
         """
-        :param initial_state: the patient's initial health state
+        :param parameters: patient parameters
         """
-        self._currentState = initial_state  # current health state
+        self._currentState = parameters.get_initial_health_state() # current health state
         self._survivalTime = 0          # survival time (with and without AIDS)
         self._AIDSFreeSurvivalTime = 0  # AIDS-free survival time
         self._progressedToAIDS = False  # if ever progressed to AIDS
@@ -166,8 +165,10 @@ class PatientCostUtilityMonitor:
             cost += 1 * self._param.get_annual_treatment_cost()
 
         # update total discounted cost and utility
-        self._totalDiscountedCost += EconCls.pv(cost, P.DISCOUNT / 2, discount_period)
-        self._totalDiscountedUtility += EconCls.pv(utility, P.DISCOUNT / 2, discount_period)
+        self._totalDiscountedCost += \
+            EconCls.pv(cost, self._param.get_discount_rate() / 2, discount_period + 1)
+        self._totalDiscountedUtility += \
+            EconCls.pv(utility, self._param.get_discount_rate() / 2, discount_period + 1)
 
     def get_total_discounted_cost(self):
         """ :returns total discounted cost """
@@ -179,31 +180,31 @@ class PatientCostUtilityMonitor:
 
 
 class Cohort(object):
-    def __init__(self, id, pop_size, therapy):
+    def __init__(self, id, cohort_param, patient_param):
         """ create a cohort of patients
         :param id: an integer to specify the seed of the random number generator
-        :param pop_size: population size of this cohort
-        :param therapy: the therapy this patient will receive (mono vs. combination)
+        :param cohort_param: cohort parameters
+        :param patient_param: patient parameters
         """
-        self._initial_pop_size = pop_size
+        self._parameters = cohort_param
+        self._initial_pop_size = cohort_param.get_pop_size()
         self._patients = []      # list of patients
 
         # populate the cohort
-        for i in range(pop_size):
+        for i in range(self._initial_pop_size):
             # create a new patient (use id * pop_size + i as patient id)
-            patient = Patient(id * pop_size + i, P.HealthStat.CD4_200to500, P.PatientParameters(therapy))
+            patient = Patient(id * self._initial_pop_size + i, patient_param)
             # add the patient to the cohort
             self._patients.append(patient)
 
-    def simulate(self, n_time_steps):
+    def simulate(self):
         """ simulate the cohort of patients over the specified number of time-steps
-        :param n_time_steps: number of time steps to simulate the cohort
         :returns outputs from simulating this cohort
         """
 
         # simulate all patients
         for patient in self._patients:
-            patient.simulate(n_time_steps)
+            patient.simulate(self._parameters.get_time_steps())
 
         # return the cohort outputs
         return CohortOutputs(self)
