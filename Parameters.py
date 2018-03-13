@@ -7,28 +7,25 @@ ALPHA = 0.05        # significance level for calculating confidence intervals
 DISCOUNT = 0.03     # annual discount rate
 
 
-# transition probability matrix
-TRANS_PROB = [
-    [0.721, 0.202, 0.067, 0.010],   # CD4_200to500
-    [0.000, 0.581, 0.407, 0.012],   # CD4_200
-    [0.000, 0.000, 0.750, 0.250],   # AIDS
-    [0.000, 0.000, 0.000, 1.000]    # HIV death
+# transition matrix
+TRANS_MATRIX = [
+    [1251,  350,    116,    17],   # CD4_200to500
+    [0,     731,    512,    15],   # CD4_200
+    [0,     0,      1312,   437],   # AIDS
     ]
 
 # annual cost of each health state
-ANNUAL_COST = [
+ANNUAL_STATE_COST = [
     2756.0,   # CD4_200to500
     3025.0,   # CD4_200
-    9007.0,   # AIDS
-    0.0       # HIV death
+    9007.0    # AIDS
     ]
 
 # annual health utility of each health state
-ANNUAL_UTILITY = [
+ANNUAL_STATE_UTILITY = [
     0.75,   # CD4_200to500
     0.50,   # CD4_200
-    0.25,   # AIDS
-    0.0     # HIV death
+    0.25    # AIDS
     ]
 
 # annual drug costs
@@ -39,22 +36,99 @@ Lamivudine_COST = 2086.0
 TREATMENT_RR = 0.509
 
 
-def get_combo_therapy_trans_prob_matrix():
-    """ :returns the transition probability matrix under combination therapy """
+class HealthStat(Enum):
+    """ health states of patients with HIV """
+    CD4_200to500 = 0
+    CD4_200 = 1
+    AIDS = 2
+    HIV_DEATH = 3
 
-    # create an empty list of lists
-    combo_matrix = []
-    for l in TRANS_PROB:
-        combo_matrix.append([0] * len(l))
 
-    # populate the combo matrix
-    # first non-diagonal elements
-    for i in range(4):
-        for j in range(i + 1, 4):
-            combo_matrix[i][j] = TREATMENT_RR * TRANS_PROB[i][j]
+class Therapy(Enum):
+    """ mono vs. combination therapy """
+    MONO = 0
+    COMBO = 1
 
-    # diagonal elements are calculated to make sure the sum of each row is 1
-    for i in range(3):
-        combo_matrix[i][i] = 1 - sum(combo_matrix[i][i + 1:])
 
-    return combo_matrix
+class PatientParameters:
+    """ class containing parameters specific to patients"""
+
+    def __init__(self, therapy):
+
+        # transition probability matrix under mono therapy
+        self._mono_prob_matrix = self.__calculate_prob_matrix_mono()
+
+        # transition probability matrix of the selected therapy
+        if therapy == Therapy.MONO:
+            self._prob_matrix = self._mono_prob_matrix
+        else:
+            self._prob_matrix = self.__calculate_prob_matrix_combo()
+
+        # annual treatment cost
+        if therapy == Therapy.MONO:
+            self._annualTreatmentCost = Zidovudine_COST
+        else:
+            self._annualTreatmentCost = Zidovudine_COST + Lamivudine_COST
+
+    def get_transition_prob(self, state):
+        return self._prob_matrix[state.value]
+
+    def get_annual_state_cost(self, state):
+        if state == HealthStat.HIV_DEATH:
+            return 0
+        else:
+            return ANNUAL_STATE_COST[state.value]
+
+    def get_annual_state_utility(self, state):
+        if state == HealthStat.HIV_DEATH:
+            return 0
+        else:
+            return ANNUAL_STATE_UTILITY[state.value]
+
+    def get_annual_treatment_cost(self):
+        return self._annualTreatmentCost
+
+    def __calculate_prob_matrix_mono(self):
+        """ :returns transition probability matrix under mono therapy"""
+
+        # create an empty matrix populated with zeroes
+        matrix_mono = []
+        for i in range(len(HealthStat)):
+            matrix_mono.append([0] * len(HealthStat))
+
+        # for all health states
+        for i in range(len(HealthStat)):
+
+            # if the current state is HIV death
+            if i == HealthStat.HIV_DEATH.value:
+                matrix_mono[i][i] = 1
+
+            else:
+                # calculate total counts
+                sum_prob = sum(TRANS_MATRIX[i])
+                # transition probabilities from this state
+                for j in range(i, len(HealthStat)):
+                    matrix_mono[i][j] = TRANS_MATRIX[i][j] / sum_prob
+
+        return matrix_mono
+
+
+    def __calculate_prob_matrix_combo(self):
+        """ :returns  transition probability matrix under combination therapy """
+
+        # create an empty list of lists
+        matrix_combo = []
+        for l in self._mono_prob_matrix:
+            matrix_combo.append([0] * len(l))
+
+        # populate the combo matrix
+        # first non-diagonal elements
+        for i in range(len(HealthStat)):
+            for j in range(i + 1, len(HealthStat)):
+                matrix_combo[i][j] = TREATMENT_RR * self._mono_prob_matrix[i][j]
+
+        # diagonal elements are calculated to make sure the sum of each row is 1
+        for i in range(len(HealthStat)-1):
+            matrix_combo[i][i] = 1 - sum(matrix_combo[i][i + 1:])
+
+        return matrix_combo
