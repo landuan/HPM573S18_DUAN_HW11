@@ -4,6 +4,8 @@ POP_SIZE = 1000     # cohort population size
 TIME_STEPS = 100    # length of simulation (years)
 ALPHA = 0.05        # significance level for calculating confidence intervals
 DISCOUNT = 0.03     # annual discount rate
+ADD_BACKGROUND_MORT = True
+DELTA_T = 1/4       # years
 
 # transition matrix
 TRANS_MATRIX = [
@@ -33,5 +35,7 @@ Lamivudine_COST = 2086.0
 # treatment relative risk
 TREATMENT_RR = 0.509
 
-# annual background mortality (number per year per 1,000 population)
-BACKGROUND_MORTALITY_PROB = 8.15    # per 1,000 US population
+# annual probability of background mortality (number per year per 1,000 population)
+
+ANNUAL_PROB_BACKGROUND_MORT = 8.15 / 1000
+

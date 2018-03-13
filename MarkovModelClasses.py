@@ -1,4 +1,4 @@
-import scr.SamplePathClass as PathCls
+import scr.SamplePathClasses as PathCls
 import scr.StatisticalClasses as StatCls
 import scr.RandomVariantGenerators as rndClasses
 import scr.EconEvalClasses as EconCls
@@ -26,8 +26,7 @@ class Patient:
         t = 0  # current time step
 
         # while the patient is alive and simulation length is not yet reached
-        while self._stateMonitor.get_current_state() != P.HealthStat.HIV_DEATH \
-                and t < n_time_steps:
+        while self._stateMonitor.get_if_alive() and t < n_time_steps:
 
             # find the transition probabilities of the future states
             trans_probs = self._param.get_transition_prob(self._stateMonitor.get_current_state())
@@ -38,7 +37,7 @@ class Patient:
             new_state_index = empirical_dist.sample(self._rng)
 
             # update health state
-            self._stateMonitor.update(t, P.HealthStat(new_state_index))
+            self._stateMonitor.update(t, P.HealthStats(new_state_index))
 
             # increment time step
             t += 1
@@ -81,26 +80,27 @@ class PatientStateMonitor:
         """
 
         # if the patient is in dead state, do nothing
-        if self._currentState == P.HealthStat.HIV_DEATH:
+        if self._currentState == P.HealthStats.HIV_DEATH \
+                or self._currentState == P.HealthStats.BACKGROUND_DEATH:
             return
 
         # update survival time
         # if HIV death will occur
-        if next_state == P.HealthStat.HIV_DEATH:
+        if next_state == P.HealthStats.HIV_DEATH:
             self._survivalTime += 0.5  # corrected for the half-cycle effect
         else:
             self._survivalTime += 1
 
         # update AIDS-free survival time
         # the patient should not be already in AIDS state
-        if self._currentState != P.HealthStat.AIDS:
-            if next_state == P.HealthStat.HIV_DEATH:
+        if self._currentState != P.HealthStats.AIDS:
+            if next_state == P.HealthStats.HIV_DEATH or next_state == P.HealthStats.BACKGROUND_DEATH:
                 self._AIDSFreeSurvivalTime += 0.5  # corrected for the half-cycle effect
             else:
                 self._AIDSFreeSurvivalTime += 1
 
         # if ever progressed to AIDS
-        if self._currentState != P.HealthStat.AIDS and next_state == P.HealthStat.AIDS:
+        if self._currentState != P.HealthStats.AIDS and next_state == P.HealthStats.AIDS:
             self._progressedToAIDS = True
 
         # collect cost and utility outcomes
@@ -109,13 +109,19 @@ class PatientStateMonitor:
         # update current health state
         self._currentState = next_state
 
+    def get_if_alive(self):
+        result = True
+        if self._currentState in [P.HealthStats.HIV_DEATH, P.HealthStats.BACKGROUND_DEATH]:
+            result = False
+        return result
+
     def get_current_state(self):
         return self._currentState
 
     def get_survival_time(self):
         """ returns the patient survival time """
         # return survival time only if the patient has died
-        if self._currentState == P.HealthStat.HIV_DEATH:
+        if self._currentState == P.HealthStats.HIV_DEATH:
             return self._survivalTime
         else:
             return None
@@ -159,7 +165,7 @@ class PatientCostUtilityMonitor:
 
         # add the cost of treatment
         # if HIV death will occur
-        if next_state == P.HealthStat.HIV_DEATH:
+        if next_state == P.HealthStats.HIV_DEATH or next_state == P.HealthStats.BACKGROUND_DEATH:
             cost += 0.5 * self._param.get_annual_treatment_cost()  # corrected for the half-cycle effect
         else:
             cost += 1 * self._param.get_annual_treatment_cost()

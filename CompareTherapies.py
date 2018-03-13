@@ -9,7 +9,7 @@ import scr.FigureSupport as Figs
 cohort_mono = MarkovCls.Cohort(
     id=1,
     cohort_param=P.CohortParameters(),
-    patient_param=P.PatientParameters(P.Therapy.MONO))
+    patient_param=P.PatientParameters(P.Therapies.MONO))
 # simulate the cohort
 simOutputs_mono = cohort_mono.simulate()
 
@@ -18,7 +18,7 @@ simOutputs_mono = cohort_mono.simulate()
 cohort_combo = MarkovCls.Cohort(
     id=2,
     cohort_param=P.CohortParameters(),
-    patient_param=P.PatientParameters(P.Therapy.COMBO))
+    patient_param=P.PatientParameters(P.Therapies.COMBO))
 # simulate the cohort
 simOutputs_combo = cohort_combo.simulate()
 

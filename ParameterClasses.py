@@ -1,16 +1,19 @@
 from enum import Enum
+import numpy as np
 import InputData as Data
+import scr.MarkovClasses as MarkovCls
 
 
-class HealthStat(Enum):
+class HealthStats(Enum):
     """ health states of patients with HIV """
     CD4_200to500 = 0
     CD4_200 = 1
     AIDS = 2
     HIV_DEATH = 3
+    BACKGROUND_DEATH = 4
 
 
-class Therapy(Enum):
+class Therapies(Enum):
     """ mono vs. combination therapy """
     MONO = 0
     COMBO = 1
@@ -38,11 +41,11 @@ class PatientParameters:
         self._discountRate = Data.DISCOUNT       # annual discount rate
 
         # initial health state
-        self._initialHealthState = HealthStat.CD4_200to500
+        self._initialHealthState = HealthStats.CD4_200to500
 
         # transition probability matrix of the selected therapy
-        if therapy == Therapy.MONO:
-            self._prob_matrix = calculate_prob_matrix_mono()
+        if therapy == Therapies.MONO:
+            self._prob_matrix = calculate_prob_matrix_mono(Data.ADD_BACKGROUND_MORT)
         else:
             # treatment relative risk
             self._treatmentRR = Data.TREATMENT_RR
@@ -54,7 +57,7 @@ class PatientParameters:
         self._annualStateUtilities = Data.ANNUAL_STATE_UTILITY
 
         # annual treatment cost
-        if therapy == Therapy.MONO:
+        if therapy == Therapies.MONO:
             self._annualTreatmentCost = Data.Zidovudine_COST
         else:
             self._annualTreatmentCost = Data.Zidovudine_COST + Data.Lamivudine_COST
@@ -69,13 +72,13 @@ class PatientParameters:
         return self._prob_matrix[state.value]
 
     def get_annual_state_cost(self, state):
-        if state == HealthStat.HIV_DEATH:
+        if state == HealthStats.HIV_DEATH or state == HealthStats.BACKGROUND_DEATH:
             return 0
         else:
             return self._annualStateCosts[state.value]
 
     def get_annual_state_utility(self, state):
-        if state == HealthStat.HIV_DEATH:
+        if state == HealthStats.HIV_DEATH or state == HealthStats.BACKGROUND_DEATH:
             return 0
         else:
             return self._annualStateUtilities[state.value]
@@ -84,25 +87,38 @@ class PatientParameters:
         return self._annualTreatmentCost
 
 
-def calculate_prob_matrix_mono():
+def calculate_prob_matrix_mono(with_background_mortality):
     """ :returns transition probability matrix under mono therapy"""
 
     # create an empty matrix populated with zeroes
     matrix_mono = []
-    for i in range(len(HealthStat)):
-        matrix_mono.append([0] * len(HealthStat))
+    for s in HealthStats:
+        matrix_mono.append([0] * len(HealthStats))
 
     # for all health states
-    for i in range(len(HealthStat)):
-        # if the current state is HIV death
-        if i == HealthStat.HIV_DEATH.value:
-            matrix_mono[i][i] = 1
+    for s in HealthStats:
+        # if the current state is death
+        if s in [HealthStats.HIV_DEATH, HealthStats.BACKGROUND_DEATH]:
+            # the probability of staying in this state is 1
+            matrix_mono[s.value][s.value] = 1
         else:
-            # calculate total counts
-            sum_prob = sum(Data.TRANS_MATRIX[i])
-            # transition probabilities from this state
-            for j in range(i, len(HealthStat)):
-                matrix_mono[i][j] = Data.TRANS_MATRIX[i][j] / sum_prob
+            # calculate total counts of individuals
+            sum_prob = sum(Data.TRANS_MATRIX[s.value])
+            # calculate the transition probabilities out of this state
+            for j in range(s.value, HealthStats.BACKGROUND_DEATH.value):
+                matrix_mono[s.value][j] = Data.TRANS_MATRIX[s.value][j] / sum_prob
+
+    if with_background_mortality:
+        # find the transition rate matrix
+        rate_matrix = MarkovCls.discrete_to_continuous(matrix_mono, 1)
+        # add mortality rates
+        for s in HealthStats:
+            if s not in [HealthStats.HIV_DEATH, HealthStats.BACKGROUND_DEATH]:
+                rate_matrix[s.value][HealthStats.BACKGROUND_DEATH.value] \
+                    = -np.log(1 - Data.ANNUAL_PROB_BACKGROUND_MORT)
+
+        # convert back to transition probability matrix
+        matrix_mono, p = MarkovCls.continuous_to_discrete(rate_matrix, Data.DELTA_T)
 
     return matrix_mono
 
@@ -120,12 +136,13 @@ def calculate_prob_matrix_combo(matrix_mono, combo_rr):
 
     # populate the combo matrix
     # first non-diagonal elements
-    for i in range(len(HealthStat)):
-        for j in range(i + 1, len(HealthStat)):
-            matrix_combo[i][j] = combo_rr * matrix_mono[i][j]
+    for s in HealthStats:
+        for next_s in range(s.value + 1, len(HealthStats)):
+            matrix_combo[s.value][next_s.value] = combo_rr * matrix_mono[s.value][next_s.value]
 
     # diagonal elements are calculated to make sure the sum of each row is 1
-    for i in range(len(HealthStat)-1):
-        matrix_combo[i][i] = 1 - sum(matrix_combo[i][i + 1:])
+    for s in HealthStats:
+        if s not in [HealthStats.HIV_DEATH, HealthStats.BACKGROUND_DEATH]:
+            matrix_combo[s.value][s.value] = 1 - sum(matrix_combo[s.value][s.value + 1:])
 
     return matrix_combo
