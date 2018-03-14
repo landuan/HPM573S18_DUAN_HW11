@@ -88,7 +88,7 @@ def draw_survival_curves_and_histograms(simOutputs_mono, simOutputs_combo):
 
 
 def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
-    """ prints avereage increase in survival time, discounted cost, and discounted utility
+    """ prints average increase in survival time, discounted cost, and discounted utility
     under combination therapy compared to mono therapy
     :param simOutputs_mono: output of a cohort simulated under mono therapy
     :param simOutputs_combo: output of a cohort simulated under combination therapy
