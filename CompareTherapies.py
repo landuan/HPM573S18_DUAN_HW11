@@ -1,7 +1,7 @@
 import ParameterClasses as P
 import MarkovModelClasses as MarkovCls
 import SupportMarkovModel as SupportMarkov
-import scr.SamplePathClass as PathCls
+import scr.SamplePathClasses as PathCls
 import scr.FigureSupport as Figs
 
 # simulating mono therapy

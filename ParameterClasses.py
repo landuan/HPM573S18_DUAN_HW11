@@ -53,7 +53,8 @@ class PatientParameters:
             # treatment relative risk
             self._treatmentRR = Data.TREATMENT_RR
             # calculate transition probability matrix for the combination therapy
-            self._prob_matrix = calculate_prob_matrix_combo(calculate_prob_matrix_mono(), Data.TREATMENT_RR)
+            self._prob_matrix = calculate_prob_matrix_combo(
+                calculate_prob_matrix_mono(Data.ADD_BACKGROUND_MORT), Data.TREATMENT_RR)
 
         # annual state costs and utilities
         self._annualStateCosts = Data.ANNUAL_STATE_COST
@@ -145,7 +146,7 @@ def calculate_prob_matrix_combo(matrix_mono, combo_rr):
     # first non-diagonal elements
     for s in HealthStats:
         for next_s in range(s.value + 1, len(HealthStats)):
-            matrix_combo[s.value][next_s.value] = combo_rr * matrix_mono[s.value][next_s.value]
+            matrix_combo[s.value][next_s] = combo_rr * matrix_mono[s.value][next_s]
 
     # diagonal elements are calculated to make sure the sum of each row is 1
     for s in HealthStats:
