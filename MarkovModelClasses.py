@@ -264,6 +264,12 @@ class CohortOutputs:
     def get_times_to_HIV_deaths(self):
         return self._times_to_HIV_death
 
+    def get_costs(self):
+        return self._costs
+
+    def get_utilities(self):
+        return self._utilities
+
     def get_sumStat_survival_times(self):
         return self._sumStat_survivalTime
 

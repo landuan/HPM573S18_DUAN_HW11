@@ -24,11 +24,12 @@ PathCls.graph_sample_path(
 # graph histogram of survival times
 Figs.graph_histogram(
     data=simOutputs.get_survival_times(),
-    title='Histogram of patient survival time',
+    title='Survival times of patients with HIV',
     x_label='Survival time (years)',
     y_label='Counts',
     bin_width=1
 )
 
+# print the outcomes of this simulated cohort
 SupportMarkov.print_outcomes(simOutputs, 'Mono therapy:')
 

@@ -23,8 +23,11 @@ simOutputs_combo = cohort_combo.simulate()
 
 
 # draw survival curves and histograms
-SupportMarkov.draw_figures(simOutputs_mono, simOutputs_combo)
+SupportMarkov.draw_survival_curves_and_histograms(simOutputs_mono, simOutputs_combo)
 
 # print the estimates for the mean survival time and mean time to AIDS
 SupportMarkov.print_outcomes(simOutputs_mono, "Mono Therapy:")
 SupportMarkov.print_outcomes(simOutputs_combo, "Combination Therapy:")
+
+# print comparative outcomes
+SupportMarkov.print_comparative_outcomes(simOutputs_mono, simOutputs_combo)
