@@ -104,7 +104,9 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         estimate=increase_survival_time.get_mean(),
         interval=increase_survival_time.get_t_CI(alpha=Params.ALPHA),
         deci=2)
-    print('Average increase in survival time:', estimate_CI)
+    print("Average increase in survival time "
+          "and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+          estimate_CI)
 
     # increase in discounted total cost under combination therapy with respect to mono therapy
     increase_discounted_cost = Stat.DifferenceStatIndp(
@@ -116,7 +118,9 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         estimate=increase_discounted_cost.get_mean(),
         interval=increase_discounted_cost.get_t_CI(alpha=Params.ALPHA),
         deci=0)
-    print('Average increase in discounted cost:', estimate_CI)
+    print("Average increase in discounted cost "
+          "and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+          estimate_CI)
 
     # increase in discounted total utility under combination therapy with respect to mono therapy
     increase_discounted_utility = Stat.DifferenceStatIndp(
@@ -128,7 +132,9 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         estimate=increase_discounted_utility.get_mean(),
         interval=increase_discounted_utility.get_t_CI(alpha=Params.ALPHA),
         deci=2)
-    print('Average increase in discounted utility:', estimate_CI)
+    print("Average increase in discounted utility "
+          "and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+          estimate_CI)
 
 
 def report_CEA(simOutputs_mono, simOutputs_combo):
