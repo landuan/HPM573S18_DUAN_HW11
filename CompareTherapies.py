@@ -31,3 +31,6 @@ SupportMarkov.print_outcomes(simOutputs_combo, "Combination Therapy:")
 
 # print comparative outcomes
 SupportMarkov.print_comparative_outcomes(simOutputs_mono, simOutputs_combo)
+
+# report the CEA results
+SupportMarkov.report_CEA(simOutputs_mono, simOutputs_combo)

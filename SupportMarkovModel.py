@@ -3,6 +3,7 @@ import scr.FormatFunctions as Format
 import scr.SamplePathClasses as PathCls
 import scr.FigureSupport as Figs
 import scr.StatisticalClasses as Stat
+import scr.EconEvalClasses as Econ
 
 
 def print_outcomes(simOutput, therapy_name):
@@ -136,3 +137,37 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
     :param simOutputs_combo: output of a cohort simulated under combination therapy
     """
 
+    # define two strategies
+    mono_therapy_strategy = Econ.Strategy(
+        name='Mono therapy',
+        cost_obs=simOutputs_mono.get_costs(),
+        effect_obs=simOutputs_mono.get_utilities()
+    )
+    combo_therapy_strategy = Econ.Strategy(
+        name='Combination therapy',
+        cost_obs=simOutputs_combo.get_costs(),
+        effect_obs=simOutputs_combo.get_utilities()
+    )
+
+    # do CEA
+    CEA = Econ.CEA(
+        strategies=[mono_therapy_strategy, combo_therapy_strategy],
+        if_paired=False
+    )
+    # show the CE plane
+    CEA.show_CE_plane(
+        title='Cost-Effectiveness Analysis',
+        x_label='Additional discounted utility',
+        y_label='Additional discounted cost',
+        show_names=True,
+        show_clouds=True,
+        show_legend=True
+    )
+    # report the CE table
+    CEA.build_CE_table(
+        interval=Econ.Interval.CONFIDENCE,
+        alpha=Params.ALPHA,
+        cost_digits=0,
+        effect_digits=2,
+        icer_digits=2,
+    )
