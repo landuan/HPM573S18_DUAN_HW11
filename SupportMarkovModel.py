@@ -161,7 +161,8 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
         y_label='Additional discounted cost',
         show_names=True,
         show_clouds=True,
-        show_legend=True
+        show_legend=True,
+        figure_size=8
     )
     # report the CE table
     CEA.build_CE_table(
