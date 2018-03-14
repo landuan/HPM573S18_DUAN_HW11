@@ -31,23 +31,4 @@ Figs.graph_histogram(
 )
 
 SupportMarkov.print_outcomes(simOutputs, 'Mono therapy:')
-#
-# # mean and confidence interval text of patient survival time
-# survival_mean_CI_text = Format.format_estimate_interval(
-#     estimate=simOutputs.get_sumStat_survival_times().get_mean(),
-#     interval=simOutputs.get_sumStat_survival_times().get_t_CI(alpha=Params.ALPHA),
-#     deci=2)
-#
-# # mean and confidence interval text of time to AIDS
-# time_to_AIDS_mean_CI_text = Format.format_estimate_interval(
-#     estimate=simOutputs.get_sumStat_AIDS_free_survival_time().get_mean(),
-#     interval=simOutputs.get_sumStat_AIDS_free_survival_time().get_t_CI(alpha=Params.ALPHA),
-#     deci=2)
-#
-# # print survival time statistics
-# print("")
-# print("Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1-Params.ALPHA, prec=0),
-#       survival_mean_CI_text)
-# print("Estimate of Mean time to AIDS and {:.{prec}%} confidence interval:".format(1-Params.ALPHA, prec=0),
-#       time_to_AIDS_mean_CI_text)
 

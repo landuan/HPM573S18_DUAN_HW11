@@ -19,14 +19,16 @@ class Patient:
         self._param = parameters
         # state monitor
         self._stateMonitor = PatientStateMonitor(parameters)
+        # simulation time step
+        self._delta_t = parameters.get_delta_t()
 
-    def simulate(self, n_time_steps):
+    def simulate(self, sim_length):
         """ simulate the patient over the specified simulation length """
 
-        t = 0  # current time step
+        k = 0  # current time step
 
         # while the patient is alive and simulation length is not yet reached
-        while self._stateMonitor.get_if_alive() and t < n_time_steps:
+        while self._stateMonitor.get_if_alive() and k*self._delta_t < sim_length:
 
             # find the transition probabilities of the future states
             trans_probs = self._param.get_transition_prob(self._stateMonitor.get_current_state())
@@ -37,18 +39,18 @@ class Patient:
             new_state_index = empirical_dist.sample(self._rng)
 
             # update health state
-            self._stateMonitor.update(t, P.HealthStats(new_state_index))
+            self._stateMonitor.update(k, P.HealthStats(new_state_index))
 
             # increment time step
-            t += 1
+            k += 1
 
     def get_survival_time(self):
-        """ returns the patient survival time """
+        """ returns the patient's survival time"""
         return self._stateMonitor.get_survival_time()
 
-    def get_time_to_AIDS(self):
-        """ returns time to AIDS """
-        return self._stateMonitor.get_time_to_AIDS()
+    def get_time_to_HIV_death(self):
+        """ returns the patient's time to HIV death """
+        return self._stateMonitor.get_time_to_HIV_death()
 
     def get_total_discounted_cost(self):
         """ :returns total discounted cost """
@@ -66,45 +68,35 @@ class PatientStateMonitor:
         :param parameters: patient parameters
         """
         self._currentState = parameters.get_initial_health_state() # current health state
-        self._survivalTime = 0          # survival time (with and without AIDS)
-        self._AIDSFreeSurvivalTime = 0  # AIDS-free survival time
-        self._progressedToAIDS = False  # if ever progressed to AIDS
+        self._delta_t = parameters.get_delta_t()    # simulation time step
+        self._survivalTime = 0          # survival time
+        self._time_to_HIV_death = 0     # time until HIV death
+        self._died_due_to_HIV = False   # if the patient died due to HIV
 
         # monitoring cost and utility outcomes
         self._costUtilityOutcomes = PatientCostUtilityMonitor(parameters)
 
-    def update(self, t, next_state):
+    def update(self, k, next_state):
         """
-        :param t: current time step
+        :param k: current time step
         :param next_state: next state
         """
 
-        # if the patient is in dead state, do nothing
-        if self._currentState == P.HealthStats.HIV_DEATH \
-                or self._currentState == P.HealthStats.BACKGROUND_DEATH:
+        # if the patient has died, do nothing
+        if not self.get_if_alive():
             return
 
         # update survival time
-        # if HIV death will occur
+        if next_state in [P.HealthStats.HIV_DEATH, P.HealthStats.BACKGROUND_DEATH]:
+            self._survivalTime = (k+0.5)*self._delta_t  # corrected for the half-cycle effect
+
+        # update time until HIV death
         if next_state == P.HealthStats.HIV_DEATH:
-            self._survivalTime += 0.5  # corrected for the half-cycle effect
-        else:
-            self._survivalTime += 1
-
-        # update AIDS-free survival time
-        # the patient should not be already in AIDS state
-        if self._currentState != P.HealthStats.AIDS:
-            if next_state == P.HealthStats.HIV_DEATH or next_state == P.HealthStats.BACKGROUND_DEATH:
-                self._AIDSFreeSurvivalTime += 0.5  # corrected for the half-cycle effect
-            else:
-                self._AIDSFreeSurvivalTime += 1
-
-        # if ever progressed to AIDS
-        if self._currentState != P.HealthStats.AIDS and next_state == P.HealthStats.AIDS:
-            self._progressedToAIDS = True
+            self._died_due_to_HIV = True
+            self._time_to_HIV_death = (k+0.5)*self._delta_t  # corrected for the half-cycle effect
 
         # collect cost and utility outcomes
-        self._costUtilityOutcomes.update(t, self._currentState, next_state)
+        self._costUtilityOutcomes.update(k, self._currentState, next_state)
 
         # update current health state
         self._currentState = next_state
@@ -121,16 +113,16 @@ class PatientStateMonitor:
     def get_survival_time(self):
         """ returns the patient survival time """
         # return survival time only if the patient has died
-        if self._currentState == P.HealthStats.HIV_DEATH:
+        if not self.get_if_alive():
             return self._survivalTime
         else:
             return None
 
-    def get_time_to_AIDS(self):
-        """ returns the patient's time to AIDS """
-        # return time to AIDS only if the patient has progressed to AIDS
-        if self._progressedToAIDS:
-            return self._AIDSFreeSurvivalTime
+    def get_time_to_HIV_death(self):
+        """ returns the patient's time to HIV death """
+        # return time to HIV death only if the patient has died due to HIV
+        if self._died_due_to_HIV:
+            return self._time_to_HIV_death
         else:
             return None
 
@@ -154,27 +146,32 @@ class PatientCostUtilityMonitor:
         self._totalDiscountedCost = 0
         self._totalDiscountedUtility = 0
 
-    def update(self, discount_period, current_state, next_state):
+    def update(self, k, current_state, next_state):
+        """ updates the discounted total cost and health utility
+        :param k: simulation time step
+        :param current_state: current health state
+        :param next_state: next health state
+        """
 
         # update cost
         cost = 0.5 * (self._param.get_annual_state_cost(current_state) +
-                      self._param.get_annual_state_cost(next_state))
+                      self._param.get_annual_state_cost(next_state)) * self._param.get_delta_t()
         # update utility
         utility = 0.5 * (self._param.get_annual_state_utility(current_state) +
-                         self._param.get_annual_state_utility(next_state))
+                         self._param.get_annual_state_utility(next_state)) * self._param.get_delta_t()
 
         # add the cost of treatment
         # if HIV death will occur
-        if next_state == P.HealthStats.HIV_DEATH or next_state == P.HealthStats.BACKGROUND_DEATH:
-            cost += 0.5 * self._param.get_annual_treatment_cost()  # corrected for the half-cycle effect
+        if next_state in [P.HealthStats.HIV_DEATH, P.HealthStats.BACKGROUND_DEATH]:
+            cost += 0.5 * self._param.get_annual_treatment_cost() * self._param.get_delta_t()
         else:
-            cost += 1 * self._param.get_annual_treatment_cost()
+            cost += 1 * self._param.get_annual_treatment_cost() * self._param.get_delta_t()
 
-        # update total discounted cost and utility
+        # update total discounted cost and utility (corrected for the half-cycle effect)
         self._totalDiscountedCost += \
-            EconCls.pv(cost, self._param.get_discount_rate() / 2, discount_period + 1)
+            EconCls.pv(cost, self._param.get_adj_discount_rate() / 2, 2*k + 1)
         self._totalDiscountedUtility += \
-            EconCls.pv(utility, self._param.get_discount_rate() / 2, discount_period + 1)
+            EconCls.pv(utility, self._param.get_adj_discount_rate() / 2, 2*k + 1)
 
     def get_total_discounted_cost(self):
         """ :returns total discounted cost """
@@ -210,7 +207,7 @@ class Cohort(object):
 
         # simulate all patients
         for patient in self._patients:
-            patient.simulate(self._parameters.get_time_steps())
+            patient.simulate(self._parameters.get_sim_length())
 
         # return the cohort outputs
         return CohortOutputs(self)
@@ -228,17 +225,14 @@ class CohortOutputs:
         :param simulated_cohort: a cohort after being simulated
         """
 
-        self._survivalTimes = []  # patient survival times
+        self._survivalTimes = []        # patients' survival times
+        self._times_to_HIV_death = []    # patients' times until HIV death
+        self._costs = []                # patients' discounted total costs
+        self._utilities =[]             # patients' discounted total utilities
 
         # survival curve
         self._survivalCurve = \
             PathCls.SamplePathBatchUpdate('Population size over time', id, simulated_cohort.get_initial_pop_size())
-
-        # summary statistics
-        self._sumStat_survivalTime = StatCls.DiscreteTimeStat('Patient survival time')
-        self._sumStat_AIDSFreeSurvivalTime = StatCls.DiscreteTimeStat('AIDS-free survival time ')
-        self._sumStat_cost = StatCls.DiscreteTimeStat('Patient discounted cost')
-        self._sumStat_utility = StatCls.DiscreteTimeStat('Patient discounted utility')
 
         # find patients' survival times
         for patient in simulated_cohort.get_patients():
@@ -246,27 +240,35 @@ class CohortOutputs:
             # get the patient survival time
             survival_time = patient.get_survival_time()
             if not (survival_time is None):
-                self._survivalTimes.append(survival_time)
-                self._survivalCurve.record(survival_time, -1)
-                self._sumStat_survivalTime.record(survival_time)
+                self._survivalTimes.append(survival_time)           # store the survival time of this patient
+                self._survivalCurve.record(survival_time, -1)       # update the survival curve
 
-            # get the patient AIDS-free survival time
-            time_to_AIDS = patient.get_time_to_AIDS()
-            if not (time_to_AIDS is None):
-                self._sumStat_AIDSFreeSurvivalTime.record(time_to_AIDS)
+            # get the patient's time to HIV death
+            time_to_HIV_death = patient.get_time_to_HIV_death()
+            if not (time_to_HIV_death is None):
+                self._times_to_HIV_death.append(time_to_HIV_death)
 
             # cost and utility
-            self._sumStat_cost.record(patient.get_total_discounted_cost())
-            self._sumStat_utility.record(patient.get_total_discounted_utility())
+            self._costs.append(patient.get_total_discounted_cost())
+            self._utilities.append(patient.get_total_discounted_utility())
+
+        # summary statistics
+        self._sumStat_survivalTime = StatCls.SummaryStat('Patient survival time', self._survivalTimes)
+        self._sumState_timeToHIVDeath = StatCls.SummaryStat('Time until HIV death', self._times_to_HIV_death)
+        self._sumStat_cost = StatCls.SummaryStat('Patient discounted cost', self._costs)
+        self._sumStat_utility = StatCls.SummaryStat('Patient discounted utility', self._utilities)
 
     def get_survival_times(self):
         return self._survivalTimes
 
+    def get_times_to_HIV_deaths(self):
+        return self._times_to_HIV_death
+
     def get_sumStat_survival_times(self):
         return self._sumStat_survivalTime
 
-    def get_sumStat_AIDS_free_survival_time(self):
-        return self._sumStat_AIDSFreeSurvivalTime
+    def get_sumStat_time_to_HIV_death(self):
+        return self._sumState_timeToHIVDeath
 
     def get_sumStat_discounted_cost(self):
         return self._sumStat_cost

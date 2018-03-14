@@ -23,13 +23,13 @@ class CohortParameters:
     """ class containing parameters specific to cohorts """
     def __init__(self):
         self._pop_size = Data.POP_SIZE      # cohort population size
-        self._time_steps = Data.TIME_STEPS  # length of simulation (years)
+        self._sim_length = Data.SIM_LENGTH  # length of simulation (years)
 
     def get_pop_size(self):
         return self._pop_size
 
-    def get_time_steps(self):
-        return self._time_steps
+    def get_sim_length(self):
+        return self._sim_length
 
 
 class PatientParameters:
@@ -37,8 +37,11 @@ class PatientParameters:
 
     def __init__(self, therapy):
 
-        # simulation settings
-        self._discountRate = Data.DISCOUNT       # annual discount rate
+        # simulation time step
+        self._delta_t = Data.DELTA_T
+
+        # calculate the adjusted discount rate
+        self._adjDiscountRate = Data.DISCOUNT*Data.DELTA_T
 
         # initial health state
         self._initialHealthState = HealthStats.CD4_200to500
@@ -65,8 +68,11 @@ class PatientParameters:
     def get_initial_health_state(self):
         return self._initialHealthState
 
-    def get_discount_rate(self):
-        return self._discountRate
+    def get_delta_t(self):
+        return self._delta_t
+
+    def get_adj_discount_rate(self):
+        return self._adjDiscountRate
 
     def get_transition_prob(self, state):
         return self._prob_matrix[state.value]
@@ -119,6 +125,7 @@ def calculate_prob_matrix_mono(with_background_mortality):
 
         # convert back to transition probability matrix
         matrix_mono, p = MarkovCls.continuous_to_discrete(rate_matrix, Data.DELTA_T)
+        print('Upper bound on the probability of two transitions within delta_t:', p)
 
     return matrix_mono
 
