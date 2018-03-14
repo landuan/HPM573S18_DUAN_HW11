@@ -1,4 +1,4 @@
-# Labs: Discrete-Time Markov Model
+# Labs: Markov Model
 
 This repository uses **HPM573_SupportLib** (https://github.com/HPM573/HPM573_SupportLib).
 
