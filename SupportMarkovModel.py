@@ -145,12 +145,12 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
 
     # define two strategies
     mono_therapy_strategy = Econ.Strategy(
-        name='Mono therapy',
+        name='Mono Therapy',
         cost_obs=simOutputs_mono.get_costs(),
         effect_obs=simOutputs_mono.get_utilities()
     )
     combo_therapy_strategy = Econ.Strategy(
-        name='Combination therapy',
+        name='Combination Therapy',
         cost_obs=simOutputs_combo.get_costs(),
         effect_obs=simOutputs_combo.get_utilities()
     )
@@ -168,7 +168,8 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
         show_names=True,
         show_clouds=True,
         show_legend=True,
-        figure_size=8
+        figure_size=8,
+        transparency=0.3
     )
     # report the CE table
     CEA.build_CE_table(
