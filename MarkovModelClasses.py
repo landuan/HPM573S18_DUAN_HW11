@@ -3,6 +3,7 @@ import scr.StatisticalClasses as StatCls
 import scr.RandomVariantGenerators as rndClasses
 import scr.EconEvalClasses as EconCls
 import ParameterClasses as P
+import InputData as Data
 
 
 class Patient:
@@ -24,6 +25,9 @@ class Patient:
 
     def simulate(self, sim_length):
         """ simulate the patient over the specified simulation length """
+
+        # refresh parameters
+        self._param.refresh()
 
         k = 0  # current time step
 
@@ -183,20 +187,20 @@ class PatientCostUtilityMonitor:
 
 
 class Cohort:
-    def __init__(self, id, cohort_param, patient_param):
+    def __init__(self, id, therapy):
         """ create a cohort of patients
         :param id: an integer to specify the seed of the random number generator
-        :param cohort_param: cohort parameters
-        :param patient_param: patient parameters
         """
-        self._parameters = cohort_param
-        self._initial_pop_size = cohort_param.get_pop_size()
+        self._initial_pop_size = Data.POP_SIZE
         self._patients = []      # list of patients
 
         # populate the cohort
         for i in range(self._initial_pop_size):
             # create a new patient (use id * pop_size + i as patient id)
-            patient = Patient(id * self._initial_pop_size + i, patient_param)
+            if Data.PSA_ON:
+                patient = Patient(id * self._initial_pop_size + i, P.ParametersProbabilistic(i, therapy))
+            else:
+                patient = Patient(id * self._initial_pop_size + i, P.ParametersFixed(therapy))
             # add the patient to the cohort
             self._patients.append(patient)
 
@@ -207,7 +211,7 @@ class Cohort:
 
         # simulate all patients
         for patient in self._patients:
-            patient.simulate(self._parameters.get_sim_length())
+            patient.simulate(Data.SIM_LENGTH)
 
         # return the cohort outputs
         return CohortOutputs(self)

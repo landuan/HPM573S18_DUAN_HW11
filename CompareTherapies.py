@@ -6,18 +6,16 @@ import SupportMarkovModel as SupportMarkov
 # simulating mono therapy
 # create a cohort
 cohort_mono = MarkovCls.Cohort(
-    id=1,
-    cohort_param=P.CohortParameters(),
-    patient_param=P.PatientParameters(P.Therapies.MONO))
+    id=0,
+    therapy=P.Therapies.MONO)
 # simulate the cohort
 simOutputs_mono = cohort_mono.simulate()
 
 # simulating combination therapy
 # create a cohort
 cohort_combo = MarkovCls.Cohort(
-    id=2,
-    cohort_param=P.CohortParameters(),
-    patient_param=P.PatientParameters(P.Therapies.COMBO))
+    id=0,
+    therapy=P.Therapies.COMBO)
 # simulate the cohort
 simOutputs_combo = cohort_combo.simulate()
 

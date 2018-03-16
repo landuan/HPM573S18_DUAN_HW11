@@ -6,9 +6,8 @@ import scr.FigureSupport as Figs
 
 # create a cohort
 cohort = MarkovCls.Cohort(
-    id=1,
-    cohort_param=P.CohortParameters(),
-    patient_param=P.PatientParameters(P.Therapies.MONO))
+    id=0,
+    therapy=P.Therapies.MONO)
 
 # simulate the cohort
 simOutputs = cohort.simulate()

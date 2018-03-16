@@ -1,4 +1,4 @@
-import InputData as Params
+import InputData as Settings
 import scr.FormatFunctions as Format
 import scr.SamplePathClasses as PathCls
 import scr.FigureSupport as Figs
@@ -14,36 +14,36 @@ def print_outcomes(simOutput, therapy_name):
     # mean and confidence interval text of patient survival time
     survival_mean_CI_text = Format.format_estimate_interval(
         estimate=simOutput.get_sumStat_survival_times().get_mean(),
-        interval=simOutput.get_sumStat_survival_times().get_t_CI(alpha=Params.ALPHA),
+        interval=simOutput.get_sumStat_survival_times().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
     # mean and confidence interval text of time to HIV death
     time_to_HIV_death_CI_text = Format.format_estimate_interval(
         estimate=simOutput.get_sumStat_time_to_HIV_death().get_mean(),
-        interval=simOutput.get_sumStat_time_to_HIV_death().get_t_CI(alpha=Params.ALPHA),
+        interval=simOutput.get_sumStat_time_to_HIV_death().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
     # mean and confidence interval text of discounted total cost
     cost_mean_CI_text = Format.format_estimate_interval(
         estimate=simOutput.get_sumStat_discounted_cost().get_mean(),
-        interval=simOutput.get_sumStat_discounted_cost().get_t_CI(alpha=Params.ALPHA),
+        interval=simOutput.get_sumStat_discounted_cost().get_t_CI(alpha=Settings.ALPHA),
         deci=0)
 
     # mean and confidence interval text of discounted total utility
     utility_mean_CI_text = Format.format_estimate_interval(
         estimate=simOutput.get_sumStat_discounted_utility().get_mean(),
-        interval=simOutput.get_sumStat_discounted_utility().get_t_CI(alpha=Params.ALPHA),
+        interval=simOutput.get_sumStat_discounted_utility().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
     # print survival time statistics
     print(therapy_name)
-    print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+    print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           survival_mean_CI_text)
-    print("  Estimate of mean time to HIV death and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+    print("  Estimate of mean time to HIV death and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           time_to_HIV_death_CI_text)
-    print("  Estimate of discounted cost and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+    print("  Estimate of discounted cost and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           cost_mean_CI_text)
-    print("  Estimate of discounted utility and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+    print("  Estimate of discounted utility and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           utility_mean_CI_text)
     print("")
 
@@ -95,45 +95,66 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
     """
 
     # increase in survival time under combination therapy with respect to mono therapy
-    increase_survival_time = Stat.DifferenceStatIndp(
-        name='Increase in survival time',
-        x=simOutputs_combo.get_survival_times(),
-        y=simOutputs_mono.get_survival_times())
+    if Settings.PSA_ON:
+        increase_survival_time = Stat.DifferenceStatPaired(
+            name='Increase in survival time',
+            x=simOutputs_combo.get_survival_times(),
+            y=simOutputs_mono.get_survival_times())
+    else:
+        increase_survival_time = Stat.DifferenceStatIndp(
+            name='Increase in survival time',
+            x=simOutputs_combo.get_survival_times(),
+            y=simOutputs_mono.get_survival_times())
+
     # estimate and CI
     estimate_CI = Format.format_estimate_interval(
         estimate=increase_survival_time.get_mean(),
-        interval=increase_survival_time.get_t_CI(alpha=Params.ALPHA),
+        interval=increase_survival_time.get_t_CI(alpha=Settings.ALPHA),
         deci=2)
     print("Average increase in survival time "
-          "and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+          "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           estimate_CI)
 
     # increase in discounted total cost under combination therapy with respect to mono therapy
-    increase_discounted_cost = Stat.DifferenceStatIndp(
-        name='Increase in discounted cost',
-        x=simOutputs_combo.get_costs(),
-        y=simOutputs_mono.get_costs())
+    if Settings.PSA_ON:
+        increase_discounted_cost = Stat.DifferenceStatPaired(
+            name='Increase in discounted cost',
+            x=simOutputs_combo.get_costs(),
+            y=simOutputs_mono.get_costs())
+    else:
+        increase_discounted_cost = Stat.DifferenceStatIndp(
+            name='Increase in discounted cost',
+            x=simOutputs_combo.get_costs(),
+            y=simOutputs_mono.get_costs())
+
     # estimate and CI
     estimate_CI = Format.format_estimate_interval(
         estimate=increase_discounted_cost.get_mean(),
-        interval=increase_discounted_cost.get_t_CI(alpha=Params.ALPHA),
+        interval=increase_discounted_cost.get_t_CI(alpha=Settings.ALPHA),
         deci=0)
     print("Average increase in discounted cost "
-          "and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+          "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           estimate_CI)
 
     # increase in discounted total utility under combination therapy with respect to mono therapy
-    increase_discounted_utility = Stat.DifferenceStatIndp(
-        name='Increase in discounted cost',
-        x=simOutputs_combo.get_utilities(),
-        y=simOutputs_mono.get_utilities())
+    if Settings.PSA_ON:
+        increase_discounted_utility = Stat.DifferenceStatPaired(
+            name='Increase in discounted utility',
+            x=simOutputs_combo.get_utilities(),
+            y=simOutputs_mono.get_utilities())
+    else:
+        increase_discounted_utility = Stat.DifferenceStatIndp(
+            name='Increase in discounted cost',
+            x=simOutputs_combo.get_utilities(),
+            y=simOutputs_mono.get_utilities())
+
     # estimate and CI
     estimate_CI = Format.format_estimate_interval(
         estimate=increase_discounted_utility.get_mean(),
-        interval=increase_discounted_utility.get_t_CI(alpha=Params.ALPHA),
+        interval=increase_discounted_utility.get_t_CI(alpha=Settings.ALPHA),
         deci=2)
     print("Average increase in discounted utility "
-          "and {:.{prec}%} confidence interval:".format(1 - Params.ALPHA, prec=0),
+          "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           estimate_CI)
 
 
@@ -156,10 +177,16 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
     )
 
     # do CEA
-    CEA = Econ.CEA(
-        strategies=[mono_therapy_strategy, combo_therapy_strategy],
-        if_paired=False
-    )
+    if Settings.PSA_ON:
+        CEA = Econ.CEA(
+            strategies=[mono_therapy_strategy, combo_therapy_strategy],
+            if_paired=True
+        )
+    else:
+        CEA = Econ.CEA(
+            strategies=[mono_therapy_strategy, combo_therapy_strategy],
+            if_paired=False
+        )
     # show the CE plane
     CEA.show_CE_plane(
         title='Cost-Effectiveness Analysis',
@@ -174,7 +201,7 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
     # report the CE table
     CEA.build_CE_table(
         interval=Econ.Interval.CONFIDENCE,
-        alpha=Params.ALPHA,
+        alpha=Settings.ALPHA,
         cost_digits=0,
         effect_digits=2,
         icer_digits=2,
