@@ -182,7 +182,7 @@ class PatientCostUtilityMonitor:
         return  self._totalDiscountedUtility
 
 
-class Cohort(object):
+class Cohort:
     def __init__(self, id, cohort_param, patient_param):
         """ create a cohort of patients
         :param id: an integer to specify the seed of the random number generator

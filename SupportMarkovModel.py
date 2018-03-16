@@ -64,7 +64,7 @@ def draw_survival_curves_and_histograms(simOutputs_mono, simOutputs_combo):
     PathCls.graph_sample_paths(
         sample_paths=survival_curves,
         title='Survival curve',
-        x_label='Simulation time step',
+        x_label='Simulation time step (year)',
         y_label='Number of alive patients',
         legends=['Mono Therapy', 'Combination Therapy']
     )
@@ -79,7 +79,7 @@ def draw_survival_curves_and_histograms(simOutputs_mono, simOutputs_combo):
     Figs.graph_histograms(
         data_sets=set_of_survival_times,
         title='Histogram of patient survival time',
-        x_label='Survival time',
+        x_label='Survival time (year)',
         y_label='Counts',
         bin_width=1,
         legend=['Mono Therapy', 'Combination Therapy'],

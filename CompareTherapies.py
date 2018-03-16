@@ -21,7 +21,6 @@ cohort_combo = MarkovCls.Cohort(
 # simulate the cohort
 simOutputs_combo = cohort_combo.simulate()
 
-
 # draw survival curves and histograms
 SupportMarkov.draw_survival_curves_and_histograms(simOutputs_mono, simOutputs_combo)
 

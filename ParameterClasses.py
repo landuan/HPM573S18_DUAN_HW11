@@ -32,6 +32,10 @@ class CohortParameters:
         return self._sim_length
 
 
+#class _PatientParameters:
+
+
+
 class PatientParameters:
     """ class containing parameters specific to patients """
 
