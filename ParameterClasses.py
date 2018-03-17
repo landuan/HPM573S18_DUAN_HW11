@@ -54,9 +54,6 @@ class _Parameters:
         self._annualStateCosts = []
         self._annualStateUtilities = []
 
-    def refresh(self, seed):
-        pass
-
     def get_initial_health_state(self):
         return self._initialHealthState
 
@@ -109,9 +106,6 @@ class ParametersFixed(_Parameters):
         self._annualStateCosts = Data.ANNUAL_STATE_COST
         self._annualStateUtilities = Data.ANNUAL_STATE_UTILITY
 
-    def refresh(self):
-        pass
-
 
 class ParametersProbabilistic(_Parameters):
     def __init__(self, seed, therapy):
@@ -151,7 +145,10 @@ class ParametersProbabilistic(_Parameters):
             # append the distribution
             self._annualStateUtilityRVG.append(Random.Beta(a, b))
 
-    def refresh(self):
+        # resample parameters
+        self.__resample()
+
+    def __resample(self):
 
         # calculate transition probabilities
         # create an empty matrix populated with zeroes

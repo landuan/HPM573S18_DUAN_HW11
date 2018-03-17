@@ -99,12 +99,12 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         increase_survival_time = Stat.DifferenceStatPaired(
             name='Increase in survival time',
             x=simOutputs_combo.get_survival_times(),
-            y=simOutputs_mono.get_survival_times())
+            y_ref=simOutputs_mono.get_survival_times())
     else:
         increase_survival_time = Stat.DifferenceStatIndp(
             name='Increase in survival time',
             x=simOutputs_combo.get_survival_times(),
-            y=simOutputs_mono.get_survival_times())
+            y_ref=simOutputs_mono.get_survival_times())
 
     # estimate and CI
     estimate_CI = Format.format_estimate_interval(
@@ -120,12 +120,12 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         increase_discounted_cost = Stat.DifferenceStatPaired(
             name='Increase in discounted cost',
             x=simOutputs_combo.get_costs(),
-            y=simOutputs_mono.get_costs())
+            y_ref=simOutputs_mono.get_costs())
     else:
         increase_discounted_cost = Stat.DifferenceStatIndp(
             name='Increase in discounted cost',
             x=simOutputs_combo.get_costs(),
-            y=simOutputs_mono.get_costs())
+            y_ref=simOutputs_mono.get_costs())
 
     # estimate and CI
     estimate_CI = Format.format_estimate_interval(
@@ -141,12 +141,12 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         increase_discounted_utility = Stat.DifferenceStatPaired(
             name='Increase in discounted utility',
             x=simOutputs_combo.get_utilities(),
-            y=simOutputs_mono.get_utilities())
+            y_ref=simOutputs_mono.get_utilities())
     else:
         increase_discounted_utility = Stat.DifferenceStatIndp(
             name='Increase in discounted cost',
             x=simOutputs_combo.get_utilities(),
-            y=simOutputs_mono.get_utilities())
+            y_ref=simOutputs_mono.get_utilities())
 
     # estimate and CI
     estimate_CI = Format.format_estimate_interval(

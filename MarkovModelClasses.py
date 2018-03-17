@@ -26,9 +26,6 @@ class Patient:
     def simulate(self, sim_length):
         """ simulate the patient over the specified simulation length """
 
-        # refresh parameters
-        self._param.refresh()
-
         k = 0  # current time step
 
         # while the patient is alive and simulation length is not yet reached
