@@ -49,9 +49,9 @@ class Patient:
         """ returns the patient's survival time"""
         return self._stateMonitor.get_survival_time()
 
-    def get_time_to_HIV_death(self):
-        """ returns the patient's time to HIV death """
-        return self._stateMonitor.get_time_to_HIV_death()
+    def get_time_to_AIDS(self):
+        """ returns the patient's time to AIDS """
+        return self._stateMonitor.get_time_to_AIDS()
 
     def get_total_discounted_cost(self):
         """ :returns total discounted cost """
@@ -71,8 +71,8 @@ class PatientStateMonitor:
         self._currentState = parameters.get_initial_health_state() # current health state
         self._delta_t = parameters.get_delta_t()    # simulation time step
         self._survivalTime = 0          # survival time
-        self._time_to_HIV_death = 0     # time until HIV death
-        self._died_due_to_HIV = False   # if the patient died due to HIV
+        self._timeToAIDS = 0        # time to develop AIDS
+        self._ifDevelopedAIDS = False   # if the patient developed AIDS
 
         # monitoring cost and utility outcomes
         self._costUtilityOutcomes = PatientCostUtilityMonitor(parameters)
@@ -91,10 +91,10 @@ class PatientStateMonitor:
         if next_state in [P.HealthStats.HIV_DEATH, P.HealthStats.BACKGROUND_DEATH]:
             self._survivalTime = (k+0.5)*self._delta_t  # corrected for the half-cycle effect
 
-        # update time until HIV death
-        if next_state == P.HealthStats.HIV_DEATH:
-            self._died_due_to_HIV = True
-            self._time_to_HIV_death = (k+0.5)*self._delta_t  # corrected for the half-cycle effect
+        # update time until AIDS
+        if self._currentState != P.HealthStats.AIDS and next_state == P.HealthStats.AIDS:
+            self._ifDevelopedAIDS = True
+            self._timeToAIDS = (k + 0.5) * self._delta_t  # corrected for the half-cycle effect
 
         # collect cost and utility outcomes
         self._costUtilityOutcomes.update(k, self._currentState, next_state)
@@ -119,11 +119,11 @@ class PatientStateMonitor:
         else:
             return None
 
-    def get_time_to_HIV_death(self):
-        """ returns the patient's time to HIV death """
-        # return time to HIV death only if the patient has died due to HIV
-        if self._died_due_to_HIV:
-            return self._time_to_HIV_death
+    def get_time_to_AIDS(self):
+        """ returns the patient's time to AIDS """
+        # return time to AIDS  only if the patient has developed AIDS
+        if self._ifDevelopedAIDS:
+            return self._timeToAIDS
         else:
             return None
 
@@ -227,7 +227,7 @@ class CohortOutputs:
         """
 
         self._survivalTimes = []        # patients' survival times
-        self._times_to_HIV_death = []    # patients' times until HIV death
+        self._times_to_AIDS = []        # patients' times to AIDS
         self._costs = []                # patients' discounted total costs
         self._utilities =[]             # patients' discounted total utilities
 
@@ -244,10 +244,10 @@ class CohortOutputs:
                 self._survivalTimes.append(survival_time)           # store the survival time of this patient
                 self._survivalCurve.record(survival_time, -1)       # update the survival curve
 
-            # get the patient's time to HIV death
-            time_to_HIV_death = patient.get_time_to_HIV_death()
-            if not (time_to_HIV_death is None):
-                self._times_to_HIV_death.append(time_to_HIV_death)
+            # get the patient's time to AIDS
+            time_to_AIDS = patient.get_time_to_AIDS()
+            if not (time_to_AIDS is None):
+                self._times_to_AIDS.append(time_to_AIDS)
 
             # cost and utility
             self._costs.append(patient.get_total_discounted_cost())
@@ -255,15 +255,15 @@ class CohortOutputs:
 
         # summary statistics
         self._sumStat_survivalTime = StatCls.SummaryStat('Patient survival time', self._survivalTimes)
-        self._sumState_timeToHIVDeath = StatCls.SummaryStat('Time until HIV death', self._times_to_HIV_death)
+        self._sumState_timeToAIDS = StatCls.SummaryStat('Time until AIDS', self._times_to_AIDS)
         self._sumStat_cost = StatCls.SummaryStat('Patient discounted cost', self._costs)
         self._sumStat_utility = StatCls.SummaryStat('Patient discounted utility', self._utilities)
 
     def get_survival_times(self):
         return self._survivalTimes
 
-    def get_times_to_HIV_deaths(self):
-        return self._times_to_HIV_death
+    def get_times_to_AIDS(self):
+        return self._times_to_AIDS
 
     def get_costs(self):
         return self._costs
@@ -274,8 +274,8 @@ class CohortOutputs:
     def get_sumStat_survival_times(self):
         return self._sumStat_survivalTime
 
-    def get_sumStat_time_to_HIV_death(self):
-        return self._sumState_timeToHIVDeath
+    def get_sumStat_time_to_AIDS(self):
+        return self._sumState_timeToAIDS
 
     def get_sumStat_discounted_cost(self):
         return self._sumStat_cost

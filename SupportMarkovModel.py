@@ -19,8 +19,8 @@ def print_outcomes(simOutput, therapy_name):
 
     # mean and confidence interval text of time to HIV death
     time_to_HIV_death_CI_text = F.format_estimate_interval(
-        estimate=simOutput.get_sumStat_time_to_HIV_death().get_mean(),
-        interval=simOutput.get_sumStat_time_to_HIV_death().get_t_CI(alpha=Settings.ALPHA),
+        estimate=simOutput.get_sumStat_time_to_AIDS().get_mean(),
+        interval=simOutput.get_sumStat_time_to_AIDS().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
     # mean and confidence interval text of discounted total cost
@@ -28,7 +28,7 @@ def print_outcomes(simOutput, therapy_name):
         estimate=simOutput.get_sumStat_discounted_cost().get_mean(),
         interval=simOutput.get_sumStat_discounted_cost().get_t_CI(alpha=Settings.ALPHA),
         deci=0,
-        form=F.Format.CURRENCY)
+        form=F.FormatNumber.CURRENCY)
 
     # mean and confidence interval text of discounted total utility
     utility_mean_CI_text = F.format_estimate_interval(
@@ -40,7 +40,7 @@ def print_outcomes(simOutput, therapy_name):
     print(therapy_name)
     print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           survival_mean_CI_text)
-    print("  Estimate of mean time to HIV death and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
+    print("  Estimate of mean time to AIDS and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           time_to_HIV_death_CI_text)
     print("  Estimate of discounted cost and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           cost_mean_CI_text)
@@ -133,7 +133,7 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
         estimate=increase_discounted_cost.get_mean(),
         interval=increase_discounted_cost.get_t_CI(alpha=Settings.ALPHA),
         deci=0,
-        form=F.Format.CURRENCY)
+        form=F.FormatNumber.CURRENCY)
     print("Average increase in discounted cost "
           "and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           estimate_CI)
