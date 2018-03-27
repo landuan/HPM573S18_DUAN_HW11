@@ -17,7 +17,7 @@ def print_outcomes(simOutput, therapy_name):
         interval=simOutput.get_sumStat_survival_times().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
-    # mean and confidence interval text of time to HIV death
+    # mean and confidence interval text of time to AIDS
     time_to_HIV_death_CI_text = F.format_estimate_interval(
         estimate=simOutput.get_sumStat_time_to_AIDS().get_mean(),
         interval=simOutput.get_sumStat_time_to_AIDS().get_t_CI(alpha=Settings.ALPHA),
@@ -36,7 +36,7 @@ def print_outcomes(simOutput, therapy_name):
         interval=simOutput.get_sumStat_discounted_utility().get_t_CI(alpha=Settings.ALPHA),
         deci=2)
 
-    # print survival time statistics
+    # print outcomes
     print(therapy_name)
     print("  Estimate of mean survival time and {:.{prec}%} confidence interval:".format(1 - Settings.ALPHA, prec=0),
           survival_mean_CI_text)
