@@ -14,8 +14,6 @@ class Patient:
         """
 
         self._id = id
-        # random number generator for this patient
-        self._rng = rndClasses.RNG(self._id)
         # parameters
         self._param = parameters
         # state monitor
@@ -25,6 +23,9 @@ class Patient:
 
     def simulate(self, sim_length):
         """ simulate the patient over the specified simulation length """
+
+        # random number generator for this patient
+        rng = rndClasses.RNG(self._id)
 
         k = 0  # current time step
 
@@ -37,7 +38,7 @@ class Patient:
             empirical_dist = rndClasses.Empirical(trans_probs)
             # sample from the empirical distribution to get a new state
             # (returns an integer from {0, 1, 2, ...})
-            new_state_index = empirical_dist.sample(self._rng)
+            new_state_index = empirical_dist.sample(rng)
 
             # update health state
             self._stateMonitor.update(k, P.HealthStats(new_state_index))
