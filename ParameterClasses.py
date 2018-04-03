@@ -208,10 +208,10 @@ def calculate_prob_matrix():
             prob_matrix[s.value][s.value] = 1
         else:
             # calculate total counts of individuals
-            sum_prob = sum(Data.TRANS_MATRIX[s.value])
+            sum_counts = sum(Data.TRANS_MATRIX[s.value])
             # calculate the transition probabilities out of this state
             for j in range(s.value, HealthStats.BACKGROUND_DEATH.value):
-                prob_matrix[s.value][j] = Data.TRANS_MATRIX[s.value][j] / sum_prob
+                prob_matrix[s.value][j] = Data.TRANS_MATRIX[s.value][j] / sum_counts
 
     return prob_matrix
 
