@@ -30,4 +30,4 @@ SupportMarkov.print_outcomes(simOutputs_combo, "Combination Therapy:")
 SupportMarkov.print_comparative_outcomes(simOutputs_mono, simOutputs_combo)
 
 # report the CEA results
-SupportMarkov.report_CEA(simOutputs_mono, simOutputs_combo)
+SupportMarkov.report_CEA_CBA(simOutputs_mono, simOutputs_combo)

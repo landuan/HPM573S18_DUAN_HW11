@@ -160,7 +160,7 @@ def print_comparative_outcomes(simOutputs_mono, simOutputs_combo):
           estimate_CI)
 
 
-def report_CEA(simOutputs_mono, simOutputs_combo):
+def report_CEA_CBA(simOutputs_mono, simOutputs_combo):
     """ performs cost-effectiveness analysis
     :param simOutputs_mono: output of a cohort simulated under mono therapy
     :param simOutputs_combo: output of a cohort simulated under combination therapy
@@ -178,7 +178,7 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
         effect_obs=simOutputs_combo.get_utilities()
     )
 
-    # do CEA
+    # CEA
     if Settings.PSA_ON:
         CEA = Econ.CEA(
             strategies=[mono_therapy_strategy, combo_therapy_strategy],
@@ -197,7 +197,7 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
         show_names=True,
         show_clouds=True,
         show_legend=True,
-        figure_size=8,
+        figure_size=6,
         transparency=0.3
     )
     # report the CE table
@@ -207,4 +207,27 @@ def report_CEA(simOutputs_mono, simOutputs_combo):
         cost_digits=0,
         effect_digits=2,
         icer_digits=2,
+    )
+
+    # CBA
+    if Settings.PSA_ON:
+        NBA = Econ.CBA(
+            strategies=[mono_therapy_strategy, combo_therapy_strategy],
+            if_paired=True
+        )
+    else:
+        NBA = Econ.CBA(
+            strategies=[mono_therapy_strategy, combo_therapy_strategy],
+            if_paired=False
+        )
+    # show the net monetary benefit figure
+    NBA.graph_deltaNMB_lines(
+        min_wtp=0,
+        max_wtp=50000,
+        title='Cost-Benefit Analysis',
+        x_label='Willingness-to-pay for one additional QALY',
+        y_label='Net monetary benefit',
+        interval=Econ.Interval.CONFIDENCE,
+        show_legend=True,
+        figure_size=6
     )

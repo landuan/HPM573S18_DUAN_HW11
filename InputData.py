@@ -8,7 +8,7 @@ DISCOUNT = 0.03     # annual discount rate
 ADD_BACKGROUND_MORT = True  # if background mortality should be added
 DELTA_T = 1/4       # years
 
-PSA_ON = True      # if probabilistic sensitivity analysis is on
+PSA_ON = False      # if probabilistic sensitivity analysis is on
 
 # transition matrix
 TRANS_MATRIX = [
