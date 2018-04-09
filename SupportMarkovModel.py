@@ -225,8 +225,8 @@ def report_CEA_CBA(simOutputs_mono, simOutputs_combo):
         min_wtp=0,
         max_wtp=50000,
         title='Cost-Benefit Analysis',
-        x_label='Willingness-to-pay for one additional QALY',
-        y_label='Net monetary benefit',
+        x_label='Willingness-to-pay for one additional QALY ($)',
+        y_label='Incremental Net Monetary Benefit ($)',
         interval=Econ.Interval.CONFIDENCE,
         show_legend=True,
         figure_size=6
