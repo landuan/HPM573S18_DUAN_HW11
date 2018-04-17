@@ -88,8 +88,8 @@ class ParametersFixed(_Parameters):
         # initialize the base class
         _Parameters.__init__(self, therapy)
 
-        # calculate transition probabilities between hiv states
-        self._prob_matrix = calculate_prob_matrix()
+        # calculate transition probabilities between health states
+        self._prob_matrix = calculate_prob_matrix_mono()
         # add background mortality if needed
         if Data.ADD_BACKGROUND_MORT:
             add_background_mortality(self._prob_matrix)
@@ -192,7 +192,7 @@ class ParametersProbabilistic(_Parameters):
             self._annualStateUtilities.append(dist.sample(self._rng))
 
 
-def calculate_prob_matrix():
+def calculate_prob_matrix_mono():
     """ :returns transition probability matrix for hiv states under mono therapy"""
 
     # create an empty matrix populated with zeroes
@@ -222,6 +222,7 @@ def add_background_mortality(prob_matrix):
     rate_matrix = MarkovCls.discrete_to_continuous(prob_matrix, 1)
     # add mortality rates
     for s in HealthStats:
+        # add background rates to non-death states (background mortality rate for death-state is assumed 0)
         if s not in [HealthStats.HIV_DEATH, HealthStats.BACKGROUND_DEATH]:
             rate_matrix[s.value][HealthStats.BACKGROUND_DEATH.value] \
                 = -np.log(1 - Data.ANNUAL_PROB_BACKGROUND_MORT)
