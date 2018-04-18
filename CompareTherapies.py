@@ -14,7 +14,7 @@ simOutputs_mono = cohort_mono.simulate()
 # simulating combination therapy
 # create a cohort
 cohort_combo = MarkovCls.Cohort(
-    id=0,
+    id=1,
     therapy=P.Therapies.COMBO)
 # simulate the cohort
 simOutputs_combo = cohort_combo.simulate()

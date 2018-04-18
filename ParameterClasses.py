@@ -128,20 +128,21 @@ class ParametersProbabilistic(_Parameters):
         # treatment relative risk
         # find the mean and st_dev of the normal distribution assumed for ln(RR)
         sample_mean_lnRR = math.log(Data.TREATMENT_RR)
-        sample_std_lnRR = (Data.TREATMENT_RR_CI[1]-Data.TREATMENT_RR_CI[0])/(2*stat.norm.ppf(1-0.05/2))
-        self._lnRelativeRiskRVG = Random.Normal(mean=sample_mean_lnRR, st_dev=sample_std_lnRR)
+        sample_std_lnRR = \
+            (math.log(Data.TREATMENT_RR_CI[1])-math.log(Data.TREATMENT_RR_CI[0]))/(2*stat.norm.ppf(1-0.05/2))
+        self._lnRelativeRiskRVG = Random.Normal(loc=sample_mean_lnRR, scale=sample_std_lnRR)
 
         # annual state cost
         for cost in Data.ANNUAL_STATE_COST:
             # find shape and scale of the assumed gamma distribution
-            shape, scale = Est.get_gamma_parameters(mean=cost, st_dev=cost/ 4)
+            shape, loc, scale = Est.get_gamma_parameters(mean=cost, st_dev=cost/4)
             # append the distribution
             self._annualStateCostRVG.append(Random.Gamma(shape, scale))
 
         # annual state utility
         for utility in Data.ANNUAL_STATE_UTILITY:
             # find alpha and beta of the assumed beta distribution
-            a, b = Est.get_beta_parameters(mean=utility, st_dev=utility/5)
+            a, b, loc, scale = Est.get_beta_params(mean=utility, st_dev=utility/5)
             # append the distribution
             self._annualStateUtilityRVG.append(Random.Beta(a, b))
 
