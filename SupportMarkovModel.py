@@ -206,7 +206,7 @@ def report_CEA_CBA(simOutputs_mono, simOutputs_combo):
         alpha=Settings.ALPHA,
         cost_digits=0,
         effect_digits=2,
-        icer_digits=2,
+        icer_digits=0,
     )
 
     # CBA

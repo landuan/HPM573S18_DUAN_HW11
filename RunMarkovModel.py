@@ -7,7 +7,7 @@ import scr.FigureSupport as Figs
 # create a cohort
 cohort = MarkovCls.Cohort(
     id=0,
-    therapy=P.Therapies.MONO)
+    therapy=P.Therapies.COMBO)
 
 # simulate the cohort
 simOutputs = cohort.simulate()

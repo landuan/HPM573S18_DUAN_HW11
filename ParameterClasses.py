@@ -5,7 +5,7 @@ import math as math
 import InputData as Data
 import scr.MarkovClasses as MarkovCls
 import scr.RandomVariantGenerators as Random
-import scr.ProbDistParEst as Est
+import scr.FittingProbDist_MM as Est
 
 
 class HealthStats(Enum):
@@ -47,6 +47,7 @@ class _Parameters:
 
         # transition probability matrix of the selected therapy
         self._prob_matrix = []
+
         # treatment relative risk
         self._treatmentRR = 0
 
@@ -89,7 +90,7 @@ class ParametersFixed(_Parameters):
         _Parameters.__init__(self, therapy)
 
         # calculate transition probabilities between hiv states
-        self._prob_matrix = calculate_prob_matrix()
+        self._prob_matrix = calculate_prob_matrix_mono()
         # add background mortality if needed
         if Data.ADD_BACKGROUND_MORT:
             add_background_mortality(self._prob_matrix)
@@ -115,7 +116,7 @@ class ParametersProbabilistic(_Parameters):
 
         self._rng = Random.RNG(seed)    # random number generator to sample from parameter distributions
         self._hivProbMatrixRVG = []  # list of dirichlet distributions for transition probabilities
-        self._lnRelativeRiskRVG = None  # random variate generator for the treatment relative risk
+        self._lnRelativeRiskRVG = None  # random variate generator for the natural log of the treatment relative risk
         self._annualStateCostRVG = []       # list of random variate generators for the annual cost of states
         self._annualStateUtilityRVG = []    # list of random variate generators for the annual utility of states
 
@@ -128,22 +129,25 @@ class ParametersProbabilistic(_Parameters):
         # treatment relative risk
         # find the mean and st_dev of the normal distribution assumed for ln(RR)
         sample_mean_lnRR = math.log(Data.TREATMENT_RR)
-        sample_std_lnRR = (Data.TREATMENT_RR_CI[1]-Data.TREATMENT_RR_CI[0])/(2*stat.norm.ppf(1-0.05/2))
-        self._lnRelativeRiskRVG = Random.Normal(mean=sample_mean_lnRR, st_dev=sample_std_lnRR)
+        sample_std_lnRR = \
+            (math.log(Data.TREATMENT_RR_CI[1])-math.log(Data.TREATMENT_RR_CI[0]))/(2*stat.norm.ppf(1-0.05/2))
+        self._lnRelativeRiskRVG = Random.Normal(loc=sample_mean_lnRR, scale=sample_std_lnRR)
 
         # annual state cost
         for cost in Data.ANNUAL_STATE_COST:
             # find shape and scale of the assumed gamma distribution
-            shape, scale = Est.get_gamma_parameters(mean=cost, st_dev=cost/ 4)
+            estDic = Est.get_gamma_params(mean=cost, st_dev=cost/4)
             # append the distribution
-            self._annualStateCostRVG.append(Random.Gamma(shape, scale))
+            self._annualStateCostRVG.append(
+                Random.Gamma(a=estDic["a"], loc=0, scale=estDic["scale"]))
 
         # annual state utility
         for utility in Data.ANNUAL_STATE_UTILITY:
             # find alpha and beta of the assumed beta distribution
-            a, b = Est.get_beta_parameters(mean=utility, st_dev=utility/5)
+            estDic = Est.get_beta_params(mean=utility, st_dev=utility/4)
             # append the distribution
-            self._annualStateUtilityRVG.append(Random.Beta(a, b))
+            self._annualStateUtilityRVG.append(
+                Random.Beta(a=estDic["a"], b=estDic["b"]))
 
         # resample parameters
         self.__resample()
@@ -164,8 +168,7 @@ class ParametersProbabilistic(_Parameters):
                 self._prob_matrix[s.value][s.value] = 1
             else:
                 # sample from the dirichlet distribution to find the transition probabilities between hiv states
-                dist = self._hivProbMatrixRVG[s.value]
-                sample = dist.sample(self._rng)
+                sample = self._hivProbMatrixRVG[s.value].sample(self._rng)
                 for j in range(len(sample)):
                     self._prob_matrix[s.value][s.value+j] = sample[j]
 
@@ -192,7 +195,7 @@ class ParametersProbabilistic(_Parameters):
             self._annualStateUtilities.append(dist.sample(self._rng))
 
 
-def calculate_prob_matrix():
+def calculate_prob_matrix_mono():
     """ :returns transition probability matrix for hiv states under mono therapy"""
 
     # create an empty matrix populated with zeroes
